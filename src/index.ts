@@ -57,7 +57,7 @@ async function fetchEndpoints() {
 const server = new Server(
     {
         name: "wawp-api",
-        version: "2.0.5",
+        version: "3.0.0",
     },
     {
         capabilities: {
