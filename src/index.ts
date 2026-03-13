@@ -490,14 +490,34 @@ except Exception as e:
     }
 });
 
+// Export the server for Smithery's scanner
+export { server };
+
+/**
+ * Smithery Sandbox Support
+ * This allows the scanner to see tools without credentials.
+ */
+export function createSandboxServer() {
+    return server;
+}
+
 // Start the server
 async function main() {
-    loadLocalEnv();
+    // Only load env if not in sandbox/scan mode
+    if (!process.env.SMITHERY_SCAN) {
+        loadLocalEnv();
+    }
     const transport = new StdioServerTransport();
     await server.connect(transport);
 }
 
-main().catch((error) => {
-    console.error("Server error:", error);
-    process.exit(1);
-});
+// Only run if this file is the main entry point
+if (import.meta.url.endsWith(path.basename(process.argv[1])) || process.env.NODE_ENV !== 'test') {
+    main().catch((error) => {
+        // Skip logging during scans to keep output clean
+        if (!process.env.SMITHERY_SCAN) {
+            console.error("Server error:", error);
+        }
+        process.exit(1);
+    });
+}
