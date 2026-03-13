@@ -1,22 +1,16 @@
 # Wawp MCP Server 🤖
 
-[![smithery badge](https://smithery.ai/badge/wawp/whatsapp)](https://smithery.ai/servers/wawp/whatsapp)
-
-
 The Model Context Protocol (MCP) server for the Wawp WhatsApp API. This tool allows AI models (like Cursor, Windsurf, or Claude Desktop) to interact directly with your WhatsApp instances.
 
 ## 🚀 Quick Start
 
-You don't need to install anything manually. You can use **Smithery** for one-click deployment or use `npx`.
-
-<a href="https://smithery.ai/servers/wawp/whatsapp"><img src="https://smithery.ai/badge/wawp/whatsapp" alt="Smithery Badge" /></a>
-
+You don't need to install anything manually. You can run the server directly using `npx`.
 
 ### 🖱️ Cursor / Windsurf
 Add a new MCP server with the following settings:
 - **Type:** `command`
 - **Command:** `npx`
-- **Args:** `["-y", "@wawp/mcp-server"]`
+- **Args:** `["-y", "@wawp/mcp-server@latest"]`
 
 ### 🤖 Claude Desktop
 Add this to your `claude_desktop_config.json`:
@@ -25,7 +19,7 @@ Add this to your `claude_desktop_config.json`:
   "mcpServers": {
     "wawp": {
       "command": "npx",
-      "args": ["-y", "@wawp/mcp-server"]
+      "args": ["-y", "@wawp/mcp-server@latest"]
     }
   }
 }
