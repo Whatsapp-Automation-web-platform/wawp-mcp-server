@@ -3,6 +3,8 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import {
     CallToolRequestSchema,
     ListToolsRequestSchema,
+    ListResourcesRequestSchema,
+    ListPromptsRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
 import * as fs from "node:fs";
 import * as path from "node:path";
@@ -57,7 +59,7 @@ async function fetchEndpoints() {
 const server = new Server(
     {
         name: "wawp-api",
-        version: "2.0.0",
+        version: "2.0.3",
     },
     {
         capabilities: {
@@ -185,14 +187,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
 /**
  * Add Resources to boost Smithery score
  */
-server.setRequestHandler(ListToolsRequestSchema, async () => {
-    // Redefining just to ensure types but usually this is combined. 
-    // I'll leave the code structure intact but ensure all schemas are handled.
-    return { tools: [] }; // This will be merged by the SDK or I should combine them.
-});
-
-// Implementation of Resources and Prompts
-(server as any).setRequestHandler({ method: "resources/list" }, async () => {
+server.setRequestHandler(ListResourcesRequestSchema, async () => {
     return {
         resources: [
             {
@@ -205,7 +200,8 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
     };
 });
 
-(server as any).setRequestHandler({ method: "prompts/list" }, async () => {
+// Implementation of Prompts
+server.setRequestHandler(ListPromptsRequestSchema, async () => {
     return {
         prompts: [
             {
