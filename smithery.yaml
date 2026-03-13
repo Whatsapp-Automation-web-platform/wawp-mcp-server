@@ -1,0 +1,26 @@
+# Smithery Configuration for Wawp MCP Server
+# https://smithery.ai/docs/config
+
+name: "@wawp/mcp-server"
+version: "2.0.1"
+description: "Official Wawp WhatsApp API MCP Server. Integrate WhatsApp messaging and automation into your AI tools."
+author: "Wawp Team"
+repository: "https://api.wawp.net"
+license: "MIT"
+keywords:
+  - whatsapp
+  - messaging
+  - automation
+  - mcp
+  - ai
+  - integration
+
+mcp:
+  type: "stdio"
+  runtime: "node"
+  entrypoint: "dist/index.js"
+  install: "npm install && npm run build"
+  environment:
+    - WAWP_ACCESS_TOKEN
+    - WAWP_INSTANCE_ID
+    - WAWP_TEST_NUMBER

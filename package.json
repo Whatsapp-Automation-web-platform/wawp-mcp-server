@@ -1,0 +1,41 @@
+{
+  "name": "@wawp/mcp-server",
+  "version": "2.0.1",
+  "description": "Official Wawp WhatsApp API MCP Server. Connect your AI (Cursor, Claude, Windsurf) directly to WhatsApp for automation and messaging.",
+  "main": "dist/index.js",
+  "type": "module",
+  "bin": {
+    "mcp-server": "dist/index.js"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "rm -rf dist && tsc && sed -i '1s/^/#!\\/usr\\/bin\\/env node\\n/' dist/index.js && sed -i 's/\\r$//' dist/index.js && chmod +x dist/index.js",
+    "prepare": "npm run build"
+  },
+  "keywords": [
+    "mcp",
+    "wawp",
+    "whatsapp",
+    "whatsapp-api",
+    "ai",
+    "cursor",
+    "claude",
+    "windsurf",
+    "automation",
+    "model-context-protocol",
+    "mcp-server",
+    "api-integration"
+  ],
+  "author": "Wawp Team",
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0"
+  }
+}
