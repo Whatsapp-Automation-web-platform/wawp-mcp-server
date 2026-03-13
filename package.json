@@ -1,6 +1,6 @@
 {
   "name": "@wawp/mcp-server",
-  "version": "2.0.2",
+  "version": "2.0.3",
   "description": "Official Wawp WhatsApp API MCP Server. Connect your AI (Cursor, Claude, Windsurf) directly to WhatsApp for automation and messaging.",
   "main": "dist/index.js",
   "type": "module",
