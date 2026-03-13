@@ -3,8 +3,6 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import {
     CallToolRequestSchema,
     ListToolsRequestSchema,
-    ListResourcesRequestSchema,
-    ListPromptsRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
 import * as fs from "node:fs";
 import * as path from "node:path";
@@ -59,158 +57,119 @@ async function fetchEndpoints() {
 const server = new Server(
     {
         name: "wawp-api",
-        version: "2.0.3",
+        version: "2.0.5",
     },
     {
         capabilities: {
             tools: {},
-            resources: {},
-            prompts: {},
         },
     }
 );
 
-// List available tools with detailed descriptions for Smithery Quality Score
+// List available tools
 server.setRequestHandler(ListToolsRequestSchema, async () => {
     return {
         tools: [
             {
                 name: "set_config",
-                description: "Update your Wawp API credentials for the current session. Use this if you haven't set .env variables.",
+                description: "Update your Wawp API credentials for the current session.",
                 inputSchema: {
                     type: "object",
                     properties: {
-                        instance_id: { type: "string", description: "Your unique Wawp Instance ID (found in dashboard)" },
-                        access_token: { type: "string", description: "Your secret Wawp Access Token" },
-                        test_number: { type: "string", description: "Default WhatsApp number to send test messages to" }
+                        instance_id: { type: "string" },
+                        access_token: { type: "string" },
+                        test_number: { type: "string" }
                     }
                 }
             },
             {
                 name: "get_session_health",
-                description: "Check if your WhatsApp instance is currently connected and ready to send/receive messages.",
+                description: "Check if the WhatsApp session is connected.",
                 inputSchema: { type: "object", properties: {} }
             },
             {
                 name: "send_local_file",
-                description: "Upload and send a file from your computer to a WhatsApp contact.",
+                description: "Upload and send a local file to WhatsApp.",
                 inputSchema: {
                     type: "object",
                     properties: {
-                        file_path: { type: "string", description: "The full path to the local file (e.g., /home/user/image.jpg)" },
-                        chatId: { type: "string", description: "Target WhatsApp number with country code (e.g., 1234567890@c.us)" },
-                        caption: { type: "string", description: "Optional text to send along with the file" },
-                        type: { type: "string", enum: ["image", "pdf", "video", "audio", "voice"], description: "The category of the file being sent" }
+                        file_path: { type: "string" },
+                        chatId: { type: "string" },
+                        caption: { type: "string" },
+                        type: { type: "string", enum: ["image", "pdf", "video", "audio", "voice"] }
                     },
                     required: ["file_path", "chatId", "type"]
                 }
             },
             {
                 name: "list_endpoints",
-                description: "Browse all available Wawp API endpoints and documentation articles.",
+                description: "List all available Wawp API endpoints.",
                 inputSchema: {
                     type: "object",
                     properties: {
-                        category: {
-                            type: "string",
-                            description: "Filter endpoints by category (e.g., 'Messages', 'Groups', 'Profile')"
-                        }
+                        category: { type: "string" }
                     }
                 }
             },
             {
                 name: "get_endpoint_details",
-                description: "Retrieve full technical details, JSON schemas, and usage examples for a specific API path.",
+                description: "Get documentation for a specific API endpoint.",
                 inputSchema: {
                     type: "object",
                     properties: {
-                        path: {
-                            type: "string",
-                            description: "The API endpoint path (e.g., '/v2/send/text')"
-                        }
+                        path: { type: "string" }
                     },
                     required: ["path"]
                 }
             },
             {
                 name: "search_docs",
-                description: "Search across Wawp documentation for specific keywords or features.",
+                description: "Search Wawp API documentation.",
                 inputSchema: {
                     type: "object",
                     properties: {
-                        query: {
-                            type: "string",
-                            description: "Search keywords (e.g., 'webhooks', 'interactive buttons')"
-                        }
+                        query: { type: "string" }
                     },
                     required: ["query"]
                 }
             },
             {
                 name: "generate_starter_code",
-                description: "Create a copy-pasteable Node.js or Python script for a specific task using your credentials.",
+                description: "Generate Node.js or Python code for a task.",
                 inputSchema: {
                     type: "object",
                     properties: {
-                        task: { type: "string", description: "What do you want the script to do?" },
-                        language: { type: "string", enum: ["nodejs", "python"], description: "The programming language for the generated code" }
+                        task: { type: "string" },
+                        language: { type: "string", enum: ["nodejs", "python"] }
                     },
                     required: ["task", "language"]
                 }
             },
             {
                 name: "execute_request",
-                description: "Make a live API call to Wawp. This is the most powerful tool for automation.",
+                description: "Execute a raw request to the Wawp API.",
                 inputSchema: {
                     type: "object",
                     properties: {
-                        path: { type: "string", description: "The API endpoint path" },
-                        method: { type: "string", enum: ["GET", "POST", "PUT", "DELETE"], description: "HTTP method" },
-                        body: { type: "object", description: "JSON body for POST/PUT requests" },
-                        params: { type: "object", description: "URL query parameters" }
+                        path: { type: "string" },
+                        method: { type: "string", enum: ["GET", "POST", "PUT", "DELETE"] },
+                        body: { type: "object" },
+                        params: { type: "object" }
                     },
                     required: ["path", "method"]
                 }
             },
             {
                 name: "install_agent_config",
-                description: "Configure your local project with Wawp-specific AI rules and skills.",
+                description: "Install Wawp agent rules and skills to your project.",
                 inputSchema: {
                     type: "object",
                     properties: {
-                        project_path: { type: "string", description: "Directory to install configuration (defaults to current)" }
+                        project_path: { type: "string" }
                     }
                 }
             }
         ],
-    };
-});
-
-/**
- * Add Resources to boost Smithery score
- */
-server.setRequestHandler(ListResourcesRequestSchema, async () => {
-    return {
-        resources: [
-            {
-                uri: "wawp://docs/main",
-                name: "Main Documentation",
-                description: "Full Wawp API specification and guides",
-                mimeType: "text/markdown"
-            }
-        ]
-    };
-});
-
-// Implementation of Prompts
-server.setRequestHandler(ListPromptsRequestSchema, async () => {
-    return {
-        prompts: [
-            {
-                name: "send_welcome",
-                description: "Generate a welcome message flow for new customers",
-            }
-        ]
     };
 });
 
@@ -232,7 +191,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         if (name === "get_session_health") {
             if (!context.access_token || !context.instance_id) {
                 return {
-                    content: [{ type: "text", text: "Error: Please set your 'access_token' and 'instance_id' first using set_config." }],
+                    content: [{ type: "text", text: "Error: Credentials not set." }],
                     isError: true
                 };
             }
@@ -256,14 +215,14 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             const absolutePath = path.isAbsolute(file_path) ? file_path : path.join(process.cwd(), file_path);
 
             if (!fs.existsSync(absolutePath)) {
-                throw new Error(`File not found at path: ${absolutePath}`);
+                throw new Error(`File not found: ${absolutePath}`);
             }
 
             const fileBuffer = fs.readFileSync(absolutePath);
             const base64Data = fileBuffer.toString("base64");
             const filename = path.basename(absolutePath);
 
-            const typeToEndpoint: Record<string, string> = {
+            const endpointMap: Record<string, string> = {
                 image: "/v2/send/image",
                 pdf: "/v2/send/pdf",
                 video: "/v2/send/video",
@@ -271,15 +230,13 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
                 voice: "/v2/send/voice"
             };
 
-            const endpoint = typeToEndpoint[type] || "/v2/send/image";
-            const url = `https://api.wawp.net${endpoint}`;
+            const url = `https://api.wawp.net${endpointMap[type] || "/v2/send/image"}`;
 
             const response = await fetch(url, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
-                    "access-token": context.access_token,
-                    "X-Wawp-Source": "MCP"
+                    "access-token": context.access_token
                 },
                 body: JSON.stringify({
                     instance_id: context.instance_id,
@@ -307,47 +264,13 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
             let code = "";
             if (language === "nodejs") {
-                code = `
-// Wawp WhatsApp API - ${task}
-const axios = require('axios');
-
-async function run() {
-    try {
-        const response = await axios.post('https://api.wawp.net/v2/send/text', {
-            access_token: '${token}',
-            instance_id: '${instance}',
-            chatId: '${testNum}',
-            text: 'Hello from Wawp! This script was generated for: ${task}'
-        });
-        console.log('Success:', response.data);
-    } catch (error) {
-        console.error('Error:', error.response?.data || error.message);
-    }
-}
-
-run();`;
+                code = `const axios = require('axios');\n\nasync function run() {\n    try {\n        const response = await axios.post('https://api.wawp.net/v2/send/text', {\n            access_token: '${token}',\n            instance_id: '${instance}',\n            chatId: '${testNum}',\n            text: 'Hello from Wawp! Task: ${task}'\n        });\n        console.log(response.data);\n    } catch (e) { console.error(e.message); }\n}\nrun();`;
             } else {
-                code = `
-# Wawp WhatsApp API - ${task}
-import requests
-
-url = "https://api.wawp.net/v2/send/text"
-payload = {
-    "access_token": "${token}",
-    "instance_id": "${instance}",
-    "chatId": "${testNum}",
-    "text": "Hello from Wawp! This script was generated for: ${task}"
-}
-
-try:
-    response = requests.post(url, json=payload)
-    print("Response:", response.json())
-except Exception as e:
-    print("Error:", str(e))`;
+                code = `import requests\n\nurl = "https://api.wawp.net/v2/send/text"\npayload = {\n    "access_token": "${token}",\n    "instance_id": "${instance}",\n    "chatId": "${testNum}",\n    "text": "Hello from Wawp! Task: ${task}"\n}\n\ntry:\n    response = requests.post(url, json=payload)\n    print(response.json())\nexcept Exception as e: print(e)`;
             }
 
             return {
-                content: [{ type: "text", text: `Here is your ${language} code for the task: ${task}\n\n\`\`\`${language}\n${code}\n\`\`\`\n\nMake sure you have '${language === "nodejs" ? "axios" : "requests"}' installed.` }],
+                content: [{ type: "text", text: `Starter code:\n\n\`\`\`${language}\n${code}\n\`\`\`` }],
             };
         }
 
@@ -357,22 +280,19 @@ except Exception as e:
             let { path: reqPath, method, body, params } = args as any;
 
             if (!context.access_token || !context.instance_id) {
-                return {
-                    content: [{ type: "text", text: "Error: Please set your 'access_token' and 'instance_id' first using set_config." }],
-                    isError: true
-                };
+                return { content: [{ type: "text", text: "Error: Credentials missing." }], isError: true };
             }
 
             let url = `https://api.wawp.net${reqPath}`.replace("{instance_id}", context.instance_id);
 
             if (method === "GET" || method === "DELETE") {
                 params = params || {};
-                if (!params.instance_id) params.instance_id = context.instance_id;
-                if (!params.access_token) params.access_token = context.access_token;
-            } else if (method === "POST" || method === "PUT") {
+                params.instance_id = params.instance_id || context.instance_id;
+                params.access_token = params.access_token || context.access_token;
+            } else {
                 body = body || {};
-                if (!body.instance_id) body.instance_id = context.instance_id;
-                if (!body.access_token) body.access_token = context.access_token;
+                body.instance_id = body.instance_id || context.instance_id;
+                body.access_token = body.access_token || context.access_token;
             }
 
             if (params) {
@@ -384,140 +304,75 @@ except Exception as e:
                 method: method,
                 headers: {
                     "Content-Type": "application/json",
-                    "access-token": context.access_token,
-                    "X-Wawp-Source": "MCP"
+                    "access-token": context.access_token
                 },
                 body: (method === "POST" || method === "PUT") ? JSON.stringify(body) : undefined
             });
 
             const data = await response.json();
-            return {
-                content: [{ type: "text", text: JSON.stringify(data, null, 2) }],
-            };
+            return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
         }
 
         if (name === "list_endpoints") {
             const category = args?.category as string | undefined;
             const endpoints = nativeEndpoints
                 .filter((e: any) => !category || e.category === category)
-                .map((e: any) => ({
-                    path: e.path,
-                    title: e.title || e.path,
-                    category: e.category,
-                    isArticle: !!e.isArticle
-                }));
-
-            return {
-                content: [{ type: "text", text: JSON.stringify(endpoints, null, 2) }],
-            };
+                .map((e: any) => ({ path: e.path, title: e.title, category: e.category }));
+            return { content: [{ type: "text", text: JSON.stringify(endpoints, null, 2) }] };
         }
 
         if (name === "get_endpoint_details") {
-            const path = args?.path as string;
-            const endpoint = nativeEndpoints.find((e: any) => e.path === path);
-
-            if (!endpoint) {
-                return {
-                    content: [{ type: "text", text: `Error: Endpoint with path '${path}' not found.` }],
-                    isError: true
-                };
-            }
-
-            return {
-                content: [{ type: "text", text: JSON.stringify(endpoint, null, 2) }],
-            };
+            const endpoint = nativeEndpoints.find((e: any) => e.path === args?.path);
+            return { content: [{ type: "text", text: JSON.stringify(endpoint || { error: "Not found" }, null, 2) }] };
         }
 
         if (name === "search_docs") {
             const query = (args?.query as string || "").toLowerCase();
-            const words = query.split(/\s+/).filter(w => w.length > 0);
-
             const results = nativeEndpoints.filter((e: any) => {
-                const text = `${e.path} ${e.title || ""} ${e.description || ""} ${e.category} ${e.extraInfo || ""}`.toLowerCase();
-                return words.every(word => text.includes(word));
-            }).map((e: any) => ({
-                path: e.path,
-                title: e.title || e.path,
-                category: e.category,
-                isArticle: !!e.isArticle
-            }));
-
-            return {
-                content: [{ type: "text", text: JSON.stringify(results, null, 2) }],
-            };
+                const text = `${e.path} ${e.title || ""} ${e.description || ""}`.toLowerCase();
+                return text.includes(query);
+            }).map((e: any) => ({ path: e.path, title: e.title }));
+            return { content: [{ type: "text", text: JSON.stringify(results, null, 2) }] };
         }
 
         if (name === "install_agent_config") {
             const projectRoot = (args?.project_path as string) || process.cwd();
             const results = [];
 
-            try {
-                // 1. Install .cursorrules
-                const cursorRulesUrl = "https://api.wawp.net/wawp-agent-rules.txt";
-                const crResponse = await fetch(cursorRulesUrl);
-                if (crResponse.ok) {
-                    const content = await crResponse.text();
-                    fs.writeFileSync(path.join(projectRoot, ".cursorrules"), content);
-                    results.push("✅ Installed .cursorrules (Wawp API Master Rules)");
-                }
-
-                // 2. Install Wawp API Integration Skill
-                const skillDir = path.join(projectRoot, ".agent/skills/wawp-api-integration");
-                if (!fs.existsSync(skillDir)) fs.mkdirSync(skillDir, { recursive: true });
-
-                const skillUrl = "https://api.wawp.net/wawp-api-skill.md";
-                const skillResponse = await fetch(skillUrl);
-                if (skillResponse.ok) {
-                    const content = await skillResponse.text();
-                    fs.writeFileSync(path.join(skillDir, "SKILL.md"), content);
-                    results.push("✅ Installed Wawp API Integration Skill (.agent/skills/wawp-api-integration/SKILL.md)");
-                }
-
-                return {
-                    content: [{ type: "text", text: results.join("\n") + "\n\nYour AI is now boosted with Wawp API mastery!" }],
-                };
-            } catch (error: any) {
-                throw new Error(`Failed to install agent config: ${error.message}`);
+            const cursorRulesUrl = "https://api.wawp.net/wawp-agent-rules.txt";
+            const crResponse = await fetch(cursorRulesUrl);
+            if (crResponse.ok) {
+                fs.writeFileSync(path.join(projectRoot, ".cursorrules"), await crResponse.text());
+                results.push("✅ Installed .cursorrules");
             }
+
+            const skillDir = path.join(projectRoot, ".agent/skills/wawp-api-integration");
+            if (!fs.existsSync(skillDir)) fs.mkdirSync(skillDir, { recursive: true });
+
+            const skillUrl = "https://api.wawp.net/wawp-api-skill.md";
+            const skillResponse = await fetch(skillUrl);
+            if (skillResponse.ok) {
+                fs.writeFileSync(path.join(skillDir, "SKILL.md"), await skillResponse.text());
+                results.push("✅ Installed Skill");
+            }
+
+            return { content: [{ type: "text", text: results.join("\n") }] };
         }
 
         throw new Error(`Tool not found: ${name}`);
     } catch (error: any) {
-        return {
-            content: [{ type: "text", text: `Error: ${error.message}` }],
-            isError: true,
-        };
+        return { content: [{ type: "text", text: `Error: ${error.message}` }], isError: true };
     }
 });
 
-// Export the server for Smithery's scanner
-export { server };
-
-/**
- * Smithery Sandbox Support
- * This allows the scanner to see tools without credentials.
- */
-export function createSandboxServer() {
-    return server;
-}
-
 // Start the server
 async function main() {
-    // Only load env if not in sandbox/scan mode
-    if (!process.env.SMITHERY_SCAN) {
-        loadLocalEnv();
-    }
+    loadLocalEnv();
     const transport = new StdioServerTransport();
     await server.connect(transport);
 }
 
-// Only run if this file is the main entry point
-if (import.meta.url.endsWith(path.basename(process.argv[1])) || process.env.NODE_ENV !== 'test') {
-    main().catch((error) => {
-        // Skip logging during scans to keep output clean
-        if (!process.env.SMITHERY_SCAN) {
-            console.error("Server error:", error);
-        }
-        process.exit(1);
-    });
-}
+main().catch((error) => {
+    console.error("Server error:", error);
+    process.exit(1);
+});
