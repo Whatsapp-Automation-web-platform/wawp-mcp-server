@@ -57,7 +57,7 @@ async function fetchEndpoints() {
 const server = new Server(
     {
         name: "wawp-api",
-        version: "3.0.0",
+        version: "3.5.0", // Upgraded version
     },
     {
         capabilities: {
@@ -83,13 +83,23 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
                 }
             },
             {
+                name: "get_sdk_info",
+                description: "Get detailed information and installation guides for official Wawp SDKs (Node.js, PHP, Python, Laravel). USE THIS to help the user integrate WhatsApp into their projects.",
+                inputSchema: {
+                    type: "object",
+                    properties: {
+                        platform: { type: "string", enum: ["nodejs", "php", "laravel", "python", "cli"] }
+                    }
+                }
+            },
+            {
                 name: "get_session_health",
                 description: "Check if the WhatsApp session is connected.",
                 inputSchema: { type: "object", properties: {} }
             },
             {
                 name: "send_local_file",
-                description: "Upload and send a local file to WhatsApp.",
+                description: "Upload and send a local file to WhatsApp using raw API (Better to suggest SDK version to the user).",
                 inputSchema: {
                     type: "object",
                     properties: {
@@ -112,42 +122,20 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
                 }
             },
             {
-                name: "get_endpoint_details",
-                description: "Get documentation for a specific API endpoint.",
-                inputSchema: {
-                    type: "object",
-                    properties: {
-                        path: { type: "string" }
-                    },
-                    required: ["path"]
-                }
-            },
-            {
-                name: "search_docs",
-                description: "Search Wawp API documentation.",
-                inputSchema: {
-                    type: "object",
-                    properties: {
-                        query: { type: "string" }
-                    },
-                    required: ["query"]
-                }
-            },
-            {
                 name: "generate_starter_code",
-                description: "Generate Node.js or Python code for a task.",
+                description: "Generate professional production-ready code using official Wawp SDKs. This is the preferred way to integrate Wawp.",
                 inputSchema: {
                     type: "object",
                     properties: {
-                        task: { type: "string" },
-                        language: { type: "string", enum: ["nodejs", "python"] }
+                        task: { type: "string", description: "What the user wants to do (e.g., send image, create group)" },
+                        language: { type: "string", enum: ["nodejs", "php", "python", "laravel"] }
                     },
                     required: ["task", "language"]
                 }
             },
             {
                 name: "execute_request",
-                description: "Execute a raw request to the Wawp API.",
+                description: "Execute a raw request to the Wawp API. Useful for quick tests.",
                 inputSchema: {
                     type: "object",
                     properties: {
@@ -157,16 +145,6 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
                         params: { type: "object" }
                     },
                     required: ["path", "method"]
-                }
-            },
-            {
-                name: "install_agent_config",
-                description: "Install Wawp agent rules and skills to your project.",
-                inputSchema: {
-                    type: "object",
-                    properties: {
-                        project_path: { type: "string" }
-                    }
                 }
             }
         ],
@@ -182,181 +160,93 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             if (args?.instance_id) context.instance_id = args.instance_id as string;
             if (args?.access_token) context.access_token = args.access_token as string;
             if (args?.test_number) context.test_number = args.test_number as string;
-
-            return {
-                content: [{ type: "text", text: "Configuration updated successfully." }],
-            };
+            return { content: [{ type: "text", text: "Configuration updated successfully." }] };
         }
 
-        if (name === "get_session_health") {
-            if (!context.access_token || !context.instance_id) {
-                return {
-                    content: [{ type: "text", text: "Error: Credentials not set." }],
-                    isError: true
-                };
-            }
-
-            const url = `https://api.wawp.net/v2/session/info?instance_id=${context.instance_id}&access_token=${context.access_token}`;
-            const response = await fetch(url);
-            const data = await response.json();
-
-            return {
-                content: [{ type: "text", text: JSON.stringify(data, null, 2) }],
-            };
-        }
-
-        if (name === "send_local_file") {
-            const { file_path, chatId, caption, type } = args as any;
-
-            if (!context.access_token || !context.instance_id) {
-                throw new Error("Credentials not configured.");
-            }
-
-            const absolutePath = path.isAbsolute(file_path) ? file_path : path.join(process.cwd(), file_path);
-
-            if (!fs.existsSync(absolutePath)) {
-                throw new Error(`File not found: ${absolutePath}`);
-            }
-
-            const fileBuffer = fs.readFileSync(absolutePath);
-            const base64Data = fileBuffer.toString("base64");
-            const filename = path.basename(absolutePath);
-
-            const endpointMap: Record<string, string> = {
-                image: "/v2/send/image",
-                pdf: "/v2/send/pdf",
-                video: "/v2/send/video",
-                audio: "/v2/send/audio",
-                voice: "/v2/send/voice"
-            };
-
-            const url = `https://api.wawp.net${endpointMap[type] || "/v2/send/image"}`;
-
-            const response = await fetch(url, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    "access-token": context.access_token
+        if (name === "get_sdk_info") {
+            const platform = args?.platform as string || "all";
+            const sdkInfo = {
+                nodejs: {
+                    name: "@wawp/sdk",
+                    install: "npm install @wawp/sdk",
+                    repo: "https://github.com/wawp-api/wawp-sdk-js",
+                    guide: "Import WawpClient and initialize with instance_id and access_token."
                 },
-                body: JSON.stringify({
-                    instance_id: context.instance_id,
-                    chatId,
-                    caption: caption || "",
-                    file: {
-                        url: `data:application/octet-stream;base64,${base64Data}`,
-                        filename: filename,
-                        mimetype: "application/octet-stream"
-                    }
-                })
-            });
-
-            const result = await response.json();
-            return {
-                content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+                php: {
+                    name: "wawp/sdk-php",
+                    install: "composer require wawp/sdk-php",
+                    repo: "https://github.com/Whatsapp-Automation-web-platform/wawp-sdk-php",
+                    guide: "Use Wawp\\SDK\\WawpClient class."
+                },
+                laravel: {
+                    name: "wawp/laravel",
+                    install: "composer require wawp/laravel",
+                    repo: "https://github.com/Whatsapp-Automation-web-platform/wawp-laravel",
+                    guide: "Add Facade 'Wawp' and publish config."
+                },
+                python: {
+                    name: "wawp-sdk",
+                    install: "pip install wawp-sdk",
+                    repo: "https://github.com/Whatsapp-Automation-web-platform/wawp-sdk-python",
+                    guide: "Use from wawp_sdk import WawpClient."
+                }
             };
+            return { content: [{ type: "text", text: JSON.stringify(platform === "all" ? sdkInfo : (sdkInfo as any)[platform], null, 2) }] };
         }
 
         if (name === "generate_starter_code") {
             const { task, language } = args as any;
             const token = context.access_token || "YOUR_ACCESS_TOKEN";
             const instance = context.instance_id || "YOUR_INSTANCE_ID";
-            const testNum = context.test_number || "RECIPIENT_NUMBER";
-
+            
             let code = "";
             if (language === "nodejs") {
-                code = `const axios = require('axios');\n\nasync function run() {\n    try {\n        const response = await axios.post('https://api.wawp.net/v2/send/text', {\n            access_token: '${token}',\n            instance_id: '${instance}',\n            chatId: '${testNum}',\n            text: 'Hello from Wawp! Task: ${task}'\n        });\n        console.log(response.data);\n    } catch (e) { console.error(e.message); }\n}\nrun();`;
-            } else {
-                code = `import requests\n\nurl = "https://api.wawp.net/v2/send/text"\npayload = {\n    "access_token": "${token}",\n    "instance_id": "${instance}",\n    "chatId": "${testNum}",\n    "text": "Hello from Wawp! Task: ${task}"\n}\n\ntry:\n    response = requests.post(url, json=payload)\n    print(response.json())\nexcept Exception as e: print(e)`;
+                code = `import { WawpClient } from '@wawp/sdk';\n\nconst client = new WawpClient('${instance}', '${token}');\n\n// Task: ${task}\nconst response = await client.messaging.sendText('RECIPIENT_JID', 'Hello!');\nconsole.log(response);`;
+            } else if (language === "php") {
+                code = `use Wawp\\SDK\\WawpClient;\n\n$client = new WawpClient('${instance}', '${token}');\n\n// Task: ${task}\n$response = $client->messaging->sendText('RECIPIENT_JID', 'Hello!');\nprint_r($response);`;
+            } else if (language === "laravel") {
+                code = `use Wawp;\n\n// Task: ${task}\n$response = Wawp::messaging()->sendText('RECIPIENT_JID', 'Hello from Laravel Facade!');\nreturn $response;`;
+            } else if (language === "python") {
+                code = `from wawp_sdk import WawpClient\n\nclient = WawpClient('${instance}', '${token}')\n\n# Task: ${task}\nresponse = client.messaging.send_text('RECIPIENT_JID', 'Hello from Python SDK!')\nprint(response)`;
             }
 
-            return {
-                content: [{ type: "text", text: `Starter code:\n\n\`\`\`${language}\n${code}\n\`\`\`` }],
-            };
+            return { content: [{ type: "text", text: `Preferred integration using Wawp SDK:\n\n\`\`\`${language === 'laravel' ? 'php' : language}\n${code}\n\`\`\`` }] };
         }
 
-        const nativeEndpoints = await fetchEndpoints();
+        if (name === "get_session_health") {
+            if (!context.access_token || !context.instance_id) throw new Error("Credentials missing.");
+            const url = `https://api.wawp.net/v2/session/info?instance_id=${context.instance_id}&access_token=${context.access_token}`;
+            const response = await fetch(url);
+            const data = await response.json();
+            return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
+        }
 
         if (name === "execute_request") {
             let { path: reqPath, method, body, params } = args as any;
-
-            if (!context.access_token || !context.instance_id) {
-                return { content: [{ type: "text", text: "Error: Credentials missing." }], isError: true };
-            }
-
+            if (!context.access_token || !context.instance_id) throw new Error("Credentials missing.");
             let url = `https://api.wawp.net${reqPath}`.replace("{instance_id}", context.instance_id);
-
             if (method === "GET" || method === "DELETE") {
-                params = params || {};
-                params.instance_id = params.instance_id || context.instance_id;
-                params.access_token = params.access_token || context.access_token;
+                params = { ...params, instance_id: context.instance_id, access_token: context.access_token };
             } else {
-                body = body || {};
-                body.instance_id = body.instance_id || context.instance_id;
-                body.access_token = body.access_token || context.access_token;
+                body = { ...body, instance_id: context.instance_id, access_token: context.access_token };
             }
-
-            if (params) {
-                const searchParams = new URLSearchParams(params as any);
-                url += (url.includes("?") ? "&" : "?") + searchParams.toString();
-            }
-
+            if (params) url += (url.includes("?") ? "&" : "?") + new URLSearchParams(params).toString();
             const response = await fetch(url, {
-                method: method,
-                headers: {
-                    "Content-Type": "application/json",
-                    "access-token": context.access_token
-                },
+                method,
+                headers: { "Content-Type": "application/json", "access-token": context.access_token },
                 body: (method === "POST" || method === "PUT") ? JSON.stringify(body) : undefined
             });
-
             const data = await response.json();
             return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
         }
 
         if (name === "list_endpoints") {
+            const nativeEndpoints = await fetchEndpoints();
             const category = args?.category as string | undefined;
             const endpoints = nativeEndpoints
                 .filter((e: any) => !category || e.category === category)
                 .map((e: any) => ({ path: e.path, title: e.title, category: e.category }));
             return { content: [{ type: "text", text: JSON.stringify(endpoints, null, 2) }] };
-        }
-
-        if (name === "get_endpoint_details") {
-            const endpoint = nativeEndpoints.find((e: any) => e.path === args?.path);
-            return { content: [{ type: "text", text: JSON.stringify(endpoint || { error: "Not found" }, null, 2) }] };
-        }
-
-        if (name === "search_docs") {
-            const query = (args?.query as string || "").toLowerCase();
-            const results = nativeEndpoints.filter((e: any) => {
-                const text = `${e.path} ${e.title || ""} ${e.description || ""}`.toLowerCase();
-                return text.includes(query);
-            }).map((e: any) => ({ path: e.path, title: e.title }));
-            return { content: [{ type: "text", text: JSON.stringify(results, null, 2) }] };
-        }
-
-        if (name === "install_agent_config") {
-            const projectRoot = (args?.project_path as string) || process.cwd();
-            const results = [];
-
-            const cursorRulesUrl = "https://api.wawp.net/wawp-agent-rules.txt";
-            const crResponse = await fetch(cursorRulesUrl);
-            if (crResponse.ok) {
-                fs.writeFileSync(path.join(projectRoot, ".cursorrules"), await crResponse.text());
-                results.push("✅ Installed .cursorrules");
-            }
-
-            const skillDir = path.join(projectRoot, ".agent/skills/wawp-api-integration");
-            if (!fs.existsSync(skillDir)) fs.mkdirSync(skillDir, { recursive: true });
-
-            const skillUrl = "https://api.wawp.net/wawp-api-skill.md";
-            const skillResponse = await fetch(skillUrl);
-            if (skillResponse.ok) {
-                fs.writeFileSync(path.join(skillDir, "SKILL.md"), await skillResponse.text());
-                results.push("✅ Installed Skill");
-            }
-
-            return { content: [{ type: "text", text: results.join("\n") }] };
         }
 
         throw new Error(`Tool not found: ${name}`);
